@@ -12,9 +12,12 @@ Software Testing Final Project
 
 - https://github.com/FreeCol/freecol/tree/9b0f4dad3513ab2dc103b89c2843e8dbb46b826b
   - Seems really ambitious
+- https://github.com/magarena/magarena
+  - A single-player fantasy card game
 - https://github.com/miner-Wh/animal_janggi/tree/master?tab=readme-ov-file
   - Simple version of Xiangyi
 - https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py
   - If we don't have a clear goal, we can test huggingface library on some LLM models
 - https://github.com/xingniu/nlp-util?utm_
   - another utils class that we can check.
+
