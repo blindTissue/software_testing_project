@@ -18,3 +18,10 @@ Software Testing Final Project
   - If we don't have a clear goal, we can test huggingface library on some LLM models
 - https://github.com/xingniu/nlp-util?utm_
   - another utils class that we can check.
+
+
+### Project Proposal
+
+current Proposal can be found 
+
+https://docs.google.com/document/d/1WOVPPopJICJsQNrfoMGSU0zf6E2tf5Wzn5GQ22Lsz2A/edit?usp=sharing 
