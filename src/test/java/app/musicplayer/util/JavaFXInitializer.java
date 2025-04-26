@@ -1,4 +1,4 @@
-package util;
+package app.musicplayer.util;
 
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;

@@ -1,22 +1,23 @@
-package util;
+package app.musicplayer.util;
 
-import app.musicplayer.util.PlayingTableCell;
+import app.musicplayer.util.ClippedTableCell;
+import javafx.scene.control.OverrunStyle;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class PlayingTableCellTest {
+class ClippedTableCellTest {
 
     // Testable subclass that exposes the protected method
-    private static class TestablePlayingTableCell<S, T> extends PlayingTableCell<S, T> {
+    private static class TestableClippedTableCell<S, T> extends ClippedTableCell<S, T> {
         public void testUpdateItem(T item, boolean empty) {
             updateItem(item, empty);
         }
     }
 
-    private TestablePlayingTableCell<Object, Boolean> cell;
+    private TestableClippedTableCell<Object, String> cell;
 
     @BeforeAll
     static void initJavaFX() {
@@ -28,7 +29,15 @@ class PlayingTableCellTest {
     void setUp() {
         // Create cell on JavaFX thread
         JavaFXInitializer.runLater(() -> {
-            cell = new TestablePlayingTableCell<>();
+            cell = new TestableClippedTableCell<>();
+        });
+    }
+
+    @Test
+    void testConstructor() {
+        JavaFXInitializer.runLater(() -> {
+            assertEquals(OverrunStyle.CLIP, cell.getTextOverrun(), 
+                "TextOverrun should be set to CLIP");
         });
     }
 
@@ -44,22 +53,19 @@ class PlayingTableCellTest {
     @Test
     void testUpdateItemWhenEmpty() {
         JavaFXInitializer.runLater(() -> {
-            cell.testUpdateItem(true, true);
+            cell.testUpdateItem("Test", true);
             assertNull(cell.getText(), "Text should be null when empty is true");
             assertNull(cell.getGraphic(), "Graphic should be null when empty is true");
         });
     }
 
     @Test
-    void testUpdateItemWithFalseValue() {
+    void testUpdateItemWithValue() {
         JavaFXInitializer.runLater(() -> {
-            cell.testUpdateItem(false, false);
-            assertNull(cell.getText(), "Text should be null when item is false");
-            assertNull(cell.getGraphic(), "Graphic should be null when item is false");
+            String testValue = "Test String";
+            cell.testUpdateItem(testValue, false);
+            assertEquals(testValue, cell.getText(), 
+                "Text should be set to the item's toString() value");
         });
     }
-
-    // Note: Testing with true value would require mocking FXMLLoader and is skipped here
-    // A more comprehensive test would need to use TestFX or a similar framework to test
-    // JavaFX components properly
 } 

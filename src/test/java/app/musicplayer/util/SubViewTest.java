@@ -1,4 +1,4 @@
-package util;
+package app.musicplayer.util;
 
 import app.musicplayer.model.Song;
 import app.musicplayer.util.SubView;

@@ -1,4 +1,4 @@
-package util;
+package app.musicplayer.util;
 
 import app.musicplayer.util.ImportMusicTask;
 import org.junit.jupiter.api.BeforeAll;

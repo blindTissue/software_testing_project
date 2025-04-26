@@ -1,4 +1,4 @@
-package util;
+package app.musicplayer.util;
 
 import org.junit.platform.suite.api.ExcludeClassNamePatterns;
 import org.junit.platform.suite.api.SelectPackages;

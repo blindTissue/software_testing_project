@@ -1,4 +1,4 @@
-package util;
+package app.musicplayer.util;
 
 import app.musicplayer.util.Resources;
 import org.junit.jupiter.api.Test;
