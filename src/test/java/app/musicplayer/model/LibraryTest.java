@@ -36,13 +36,18 @@ import org.w3c.dom.Element;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.io.FileWriter;
+import java.util.NoSuchElementException;
 
 @ExtendWith(MockitoExtension.class)
 class LibraryTest {
@@ -662,30 +667,89 @@ class LibraryTest {
         }
 
         @Test
-        void testNullEmptyArtistAndTracks() throws Exception {
+        void testNullAndEmptyValues() throws Exception {
             setupAudioFileMocks();
 
             // Create a mock MP3 file
-            Path mp3Path = tempDir.resolve("null_fields.mp3");
+            Path mp3Path = tempDir.resolve("empty_values.mp3");
             Files.createFile(mp3Path);
             File directory = new File(tempDir.toString());
+
             try (MockedStatic<AudioFileIO> audioFileIOMockedStatic = mockStatic(AudioFileIO.class)) {
                 audioFileIOMockedStatic.when(() -> AudioFileIO.read(any(File.class))).thenReturn(audioFileMock);
 
-                // Configure tag mock responses with null/empty values to test the conditional branches
+                // Configure tag mock to cover all the different nullability paths
                 when(tagMock.getFirst(FieldKey.TITLE)).thenReturn("Test Title");
                 when(tagMock.getFirst(FieldKey.ALBUM_ARTIST)).thenReturn("");
-                when(tagMock.getFirst(FieldKey.ARTIST)).thenReturn(""); // Empty artist
+                when(tagMock.getFirst(FieldKey.ARTIST)).thenReturn("Fallback Artist");
                 when(tagMock.getFirst(FieldKey.ALBUM)).thenReturn("Test Album");
-                when(tagMock.getFirst(FieldKey.TRACK)).thenReturn("null"); // "null" string
-                when(tagMock.getFirst(FieldKey.DISC_NO)).thenReturn(""); // Empty disc number
+                when(tagMock.getFirst(FieldKey.TRACK)).thenReturn("null");
+                when(tagMock.getFirst(FieldKey.DISC_NO)).thenReturn("null");
 
                 int result = callWriteXML(directory, 0);
 
-                // Verify the conditional paths for empty/null values
+                verify(artistElementMock).setTextContent("Fallback Artist");
+                verify(trackNumberElementMock).setTextContent("0");
+                verify(discNumberElementMock).setTextContent("0");
+
+                assertEquals(1, result);
+            }
+        }
+
+        @Test
+        void testNullAndEmptyValues2() throws Exception {
+            setupAudioFileMocks();
+
+            // Create a mock MP3 file
+            Path mp3Path = tempDir.resolve("empty_values.mp3");
+            Files.createFile(mp3Path);
+            File directory = new File(tempDir.toString());
+
+            try (MockedStatic<AudioFileIO> audioFileIOMockedStatic = mockStatic(AudioFileIO.class)) {
+                audioFileIOMockedStatic.when(() -> AudioFileIO.read(any(File.class))).thenReturn(audioFileMock);
+
+                // Configure tag mock to cover all the different nullability paths
+                when(tagMock.getFirst(FieldKey.TITLE)).thenReturn("Test Title");
+                when(tagMock.getFirst(FieldKey.ALBUM_ARTIST)).thenReturn("");
+                when(tagMock.getFirst(FieldKey.ARTIST)).thenReturn(null);
+                when(tagMock.getFirst(FieldKey.ALBUM)).thenReturn("Test Album");
+                when(tagMock.getFirst(FieldKey.TRACK)).thenReturn("");
+                when(tagMock.getFirst(FieldKey.DISC_NO)).thenReturn("");
+
+                int result = callWriteXML(directory, 0);
+
                 verify(artistElementMock).setTextContent("");
                 verify(trackNumberElementMock).setTextContent("0");
                 verify(discNumberElementMock).setTextContent("0");
+
+                assertEquals(1, result);
+            }
+        }
+
+        @Test
+        void testValidValues() throws Exception {
+            setupAudioFileMocks();
+
+            // Create a mock MP3 file
+            Path mp3Path = tempDir.resolve("empty_values.mp3");
+            Files.createFile(mp3Path);
+            File directory = new File(tempDir.toString());
+
+            try (MockedStatic<AudioFileIO> audioFileIOMockedStatic = mockStatic(AudioFileIO.class)) {
+                audioFileIOMockedStatic.when(() -> AudioFileIO.read(any(File.class))).thenReturn(audioFileMock);
+
+                // Configure tag mock to cover all the different nullability paths
+                when(tagMock.getFirst(FieldKey.TITLE)).thenReturn("Test Title");
+                when(tagMock.getFirst(FieldKey.ALBUM_ARTIST)).thenReturn("ALBUM_ARTIST");
+                when(tagMock.getFirst(FieldKey.ALBUM)).thenReturn("Test Album");
+                when(tagMock.getFirst(FieldKey.TRACK)).thenReturn("10");
+                when(tagMock.getFirst(FieldKey.DISC_NO)).thenReturn("10");
+
+                int result = callWriteXML(directory, 0);
+
+                verify(artistElementMock).setTextContent("ALBUM_ARTIST");
+                verify(trackNumberElementMock).setTextContent("10");
+                verify(discNumberElementMock).setTextContent("10");
 
                 assertEquals(1, result);
             }
@@ -722,6 +786,61 @@ class LibraryTest {
                 verify(taskMock, times(3)).updateProgress(anyInt(), eq(10));
 
                 assertEquals(3, result);
+            }
+        }
+
+        @Test
+        void testArtistTitleEqualsNullString() throws Exception {
+            setupAudioFileMocks();
+
+            // Create a mock MP3 file
+            Path mp3Path = tempDir.resolve("null_string_artist.mp3");
+            Files.createFile(mp3Path);
+            File directory = new File(tempDir.toString());
+
+            try (MockedStatic<AudioFileIO> audioFileIOMockedStatic = mockStatic(AudioFileIO.class)) {
+                audioFileIOMockedStatic.when(() -> AudioFileIO.read(any(File.class))).thenReturn(audioFileMock);
+
+                // Configure tag mock to return the literal string "null" for ALBUM_ARTIST
+                when(tagMock.getFirst(FieldKey.TITLE)).thenReturn("Test Title");
+                when(tagMock.getFirst(FieldKey.ALBUM_ARTIST)).thenReturn("null");
+                when(tagMock.getFirst(FieldKey.ARTIST)).thenReturn("null");
+                when(tagMock.getFirst(FieldKey.ALBUM)).thenReturn("Test Album");
+
+                int result = callWriteXML(directory, 0);
+
+                verify(tagMock).getFirst(FieldKey.ARTIST);
+                verify(artistElementMock).setTextContent("");
+
+                assertEquals(1, result);
+            }
+        }
+
+        @Test
+        void testValidTrackAndDiscNumbers() throws Exception {
+            setupAudioFileMocks();
+
+            // Create a mock MP3 file
+            Path mp3Path = tempDir.resolve("valid_numbers.mp3");
+            Files.createFile(mp3Path);
+            File directory = new File(tempDir.toString());
+
+            try (MockedStatic<AudioFileIO> audioFileIOMockedStatic = mockStatic(AudioFileIO.class)) {
+                audioFileIOMockedStatic.when(() -> AudioFileIO.read(any(File.class))).thenReturn(audioFileMock);
+
+                // Configure tag mock with valid track and disc numbers
+                when(tagMock.getFirst(FieldKey.TITLE)).thenReturn("Test Title");
+                when(tagMock.getFirst(FieldKey.ALBUM_ARTIST)).thenReturn("Test Artist");
+                when(tagMock.getFirst(FieldKey.ALBUM)).thenReturn("Test Album");
+                when(tagMock.getFirst(FieldKey.TRACK)).thenReturn("7");
+                when(tagMock.getFirst(FieldKey.DISC_NO)).thenReturn("3");
+
+                int result = callWriteXML(directory, 0);
+
+                // Verify that the elements were set with valid values
+                verify(trackNumberElementMock).setTextContent("7");
+                verify(discNumberElementMock).setTextContent("3");
+                assertEquals(1, result);
             }
         }
 
@@ -962,6 +1081,7 @@ class LibraryTest {
                             "            <playCount>5</playCount>\n" +
                             "            <playDate>2023-01-01T12:00:00</playDate>\n" +
                             "            <location>/path/to/song1.mp3</location>\n" +
+                            "            <invalid>invalid</invalid>\n" +
                             "        </song>\n" +
                             "        <song>\n" +
                             "            <id>1</id>\n" +
@@ -978,7 +1098,6 @@ class LibraryTest {
                             "    </songs>\n" +
                             "</library>";
 
-            // Write content to the file
             try (FileWriter writer = new FileWriter(xmlFile)) {
                 writer.write(xmlContent);
             }
@@ -997,6 +1116,21 @@ class LibraryTest {
             assertEquals(LocalDateTime.parse("2023-01-01T12:00:00"), songs.get(0).getPlayDate());
             assertEquals("/path/to/song1.mp3", songs.get(0).getLocation());
             assertEquals("Song 2", songs.get(1).getTitle());
+        }
+
+        @Test
+        void testUpdateSongsListIncompleteXml() throws Exception {
+            String xmlContent =
+                    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                            "<library>\n" +
+                            "</library>";
+
+            try (FileWriter writer = new FileWriter(xmlFile)) {
+                writer.write(xmlContent);
+            }
+
+            ObservableList<Song> songs = Library.getSongs();
+            assertEquals(0, songs.size());
         }
 
         @Test
@@ -1061,10 +1195,6 @@ class LibraryTest {
             // Inject a mock implementation
             Method getSongsMethod = Library.class.getDeclaredMethod("getSongs");
             getSongsMethod.setAccessible(true);
-            ArrayList<Song> mockSongs = new ArrayList<>();
-            setStaticField("songs", mockSongs);
-            ArrayList<Album> mockAlbums = new ArrayList<>();
-            setStaticField("albums", mockAlbums);
 
             ObservableList<Album> result = Library.getAlbums();
 
@@ -1080,18 +1210,10 @@ class LibraryTest {
             ArrayList<Song> songList = new ArrayList<>();
             setStaticField("songs", songList);
             assertNotNull(getStaticField("songs"));
-
-            ArrayList<Album> mockAlbums = new ArrayList<>();
-            Album mockAlbum = mock(Album.class);
-            when(mockAlbum.getTitle()).thenReturn("Test Album");
-            mockAlbums.add(mockAlbum);
-            setStaticField("albums", mockAlbums);
-
             ObservableList<Album> result = Library.getAlbums();
 
             assertNotNull(result);
-            assertEquals(1, result.size());
-            assertEquals("Test Album", result.get(0).getTitle());
+            assertEquals(0, result.size());
         }
 
         @Test
@@ -1109,6 +1231,90 @@ class LibraryTest {
             assertNotNull(result);
             assertEquals(1, result.size());
             assertEquals("Pre-existing Album", result.get(0).getTitle());
+        }
+
+        // Helper methods to access and modify static fields using reflection
+        private void resetStaticField(String fieldName) throws Exception {
+            Field field = Library.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(null, null);
+        }
+
+        private Object getStaticField(String fieldName) throws Exception {
+            Field field = Library.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return field.get(null);
+        }
+
+        private void setStaticField(String fieldName, Object value) throws Exception {
+            Field field = Library.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(null, value);
+        }
+    }
+
+    @Nested
+    class GetAlbumByStringTest {
+        @BeforeEach
+        void setUp() throws Exception {
+            resetStaticField("albums");
+            resetStaticField("songs");
+        }
+
+        @AfterEach
+        void tearDown() throws Exception {
+            resetStaticField("albums");
+            resetStaticField("songs");
+        }
+
+        @Test
+        void testAlbumsIsNull() throws Exception {
+            assertNull(getStaticField("albums"));
+
+            // Create and set songs list
+            ArrayList<Song> songList = new ArrayList<>();
+            setStaticField("songs", songList);
+            assertNotNull(getStaticField("songs"));
+
+            // Use reflection to set up a mock for getAlbums
+            Method getAlbumsMethod = Library.class.getDeclaredMethod("getAlbums");
+            getAlbumsMethod.setAccessible(true);
+
+            assertThrows(NoSuchElementException.class, () -> {
+                Library.getAlbum("Test Album");
+            });
+        }
+
+        @Test
+        void testAlbumsIsNotNull() throws Exception {
+            ArrayList<Album> albumList = new ArrayList<>();
+            Album mockAlbum = mock(Album.class);
+            when(mockAlbum.getTitle()).thenReturn("Existing Album");
+            albumList.add(mockAlbum);
+
+            setStaticField("albums", albumList);
+            assertNotNull(getStaticField("albums"));
+
+            Album result = Library.getAlbum("Existing Album");
+
+            assertNotNull(result);
+            assertEquals("Existing Album", result.getTitle());
+        }
+
+        @Test
+        void testNoMatchingAlbumFound() throws Exception {
+            // Set up albums with test data that won't match our search
+            ArrayList<Album> albumList = new ArrayList<>();
+            Album mockAlbum = mock(Album.class);
+            when(mockAlbum.getTitle()).thenReturn("Different Album");
+            albumList.add(mockAlbum);
+
+            setStaticField("albums", albumList);
+
+            // NoSuchElementException when no album matches
+            assertThrows(NoSuchElementException.class, () -> {
+                Library.getAlbum("Non-existent Album");
+            });
         }
 
         // Helper methods to access and modify static fields using reflection
@@ -1308,19 +1514,12 @@ class LibraryTest {
 
             // Mock the updateAlbumsList and updateArtistsList methods to avoid actual execution
             try (MockedConstruction<Artist> artistMock = mockConstruction(Artist.class, (mock, context) -> {
-                // Do nothing, just avoid calling the real constructor
             })) {
                 // Mock the getAlbums method to return an empty list
                 try (MockedConstruction<Album> albumMock = mockConstruction(Album.class, (mock, context) -> {
-                    // Do nothing, just avoid calling the real constructor
                 })) {
-                    // Use reflection to call a private method
                     Method updateAlbumsListMethod = Library.class.getDeclaredMethod("updateAlbumsList");
                     updateAlbumsListMethod.setAccessible(true);
-
-                    // Create empty albums list to mock the result of updateAlbumsList
-                    ArrayList<Album> mockAlbums = new ArrayList<>();
-                    setStaticField("albums", mockAlbums);
 
                     ObservableList<Artist> result = Library.getArtists();
 
@@ -1896,22 +2095,15 @@ class LibraryTest {
 
         @BeforeEach
         void setUp() throws Exception {
-            // Save original JAR path
             originalJarPath = Resources.JAR;
-            // Set Resources.JAR to point to temp directory
             Resources.JAR = tempDir.toString() + File.separator;
-            // Create library.xml file path
             xmlFile = new File(tempDir.resolve("library.xml").toString());
-
-            // Reset the playlists static field before each test
             resetStaticField("playlists");
         }
 
         @AfterEach
         void tearDown() {
-            // Restore original JAR path
             Resources.JAR = originalJarPath;
-            // Reset playlists to null
             try {
                 resetStaticField("playlists");
             } catch (Exception e) {
@@ -1973,6 +2165,43 @@ class LibraryTest {
         }
 
         @Test
+        void testGetPlaylistsWithIncompleteXML() throws Exception {
+            assertNull(getStaticField("playlists"));
+
+            // Create a valid XML with playlists
+            String xmlContent =
+                    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                            "<library>\n" +
+                            "</library>";
+
+            try (FileWriter writer = new FileWriter(xmlFile)) {
+                writer.write(xmlContent);
+            }
+
+            ObservableList<Playlist> playlists = Library.getPlaylists();
+            // There are two default playlists: most played and recently played
+            assertEquals(2, playlists.size());
+        }
+
+        @Test
+        void testGetPlaylistsWithInvalidXML() throws Exception {
+            assertNull(getStaticField("playlists"));
+
+            // Create an invalid XML
+            String xmlContent =
+                    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                            "<invalid>\n" + "0" + "</invalid>";
+
+            try (FileWriter writer = new FileWriter(xmlFile)) {
+                writer.write(xmlContent);
+            }
+
+            ObservableList<Playlist> playlists = Library.getPlaylists();
+            // There are two default playlists: most played and recently played
+            assertEquals(2, playlists.size());
+        }
+
+        @Test
         void testGetPlaylistsWhenPlaylistsIsNotNull() throws Exception {
             ArrayList<Playlist> existingPlaylists = new ArrayList<>();
             existingPlaylists.add(new Playlist(1, "Existing Playlist", new ArrayList<>()));
@@ -1993,6 +2222,69 @@ class LibraryTest {
             assertEquals("Existing Playlist", playlists.get(0).getTitle());
             assertEquals(-1, playlists.get(1).getId());
             assertEquals(-2, playlists.get(2).getId());
+        }
+
+        @Test
+        void testGetPlaylistsSortingWhenPlaylistNull() throws Exception {
+            assertNull(getStaticField("playlists"));
+
+            // Create a valid XML with playlists
+            String xmlContent =
+                    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                            "<library>\n" +
+                            "    <playlists>\n" +
+                            "        <playlist id=\"2\" title=\"Playlist 2\">\n" +
+                            "        </playlist>\n" +
+                            "        <playlist id=\"5\" title=\"Playlist 5\">\n" +
+                            "        </playlist>\n" +
+                            "        <playlist id=\"3\" title=\"Playlist 3a\">\n" +
+                            "        </playlist>\n" +
+                            "        <playlist id=\"3\" title=\"Playlist 3b\">\n" +
+                            "        </playlist>\n" +
+                            "    </playlists>\n" +
+                            "</library>";
+
+            try (FileWriter writer = new FileWriter(xmlFile)) {
+                writer.write(xmlContent);
+            }
+
+            ObservableList<Playlist> playlists = Library.getPlaylists();
+
+            // Verify results
+            assertEquals(6, playlists.size());
+            assertEquals("Playlist 5", playlists.get(0).getTitle());
+            assertEquals("Playlist 3a", playlists.get(1).getTitle());
+            assertEquals("Playlist 3b", playlists.get(2).getTitle());
+            assertEquals("Playlist 2", playlists.get(3).getTitle());
+        }
+
+        @Test
+        void testGetPlaylistsSortingWhenPlaylistNotNull() throws Exception {
+            ArrayList<Playlist> existingPlaylists = new ArrayList<>();
+            existingPlaylists.add(new Playlist(2, "Existing Playlist 2", new ArrayList<>()));
+            existingPlaylists.add(new Playlist(5, "Existing Playlist 5", new ArrayList<>()));
+            existingPlaylists.add(new Playlist(3, "Existing Playlist 3a", new ArrayList<>()));
+            existingPlaylists.add(new Playlist(3, "Existing Playlist 3b", new ArrayList<>()));
+
+            // Use reflection to create instances of special playlists
+            Playlist recentlyPlayedPlaylist = createPlaylistViaReflection("app.musicplayer.model.RecentlyPlayedPlaylist", -1);
+            Playlist mostPlayedPlaylist = createPlaylistViaReflection("app.musicplayer.model.MostPlayedPlaylist", -2);
+
+            existingPlaylists.add(recentlyPlayedPlaylist);
+            existingPlaylists.add(mostPlayedPlaylist);
+
+            setStaticField("playlists", existingPlaylists);
+
+            ObservableList<Playlist> playlists = Library.getPlaylists();
+
+            // Verify results
+            assertEquals(6, playlists.size());
+            assertEquals("Existing Playlist 5", playlists.get(0).getTitle());
+            assertEquals("Existing Playlist 3a", playlists.get(1).getTitle());
+            assertEquals("Existing Playlist 3b", playlists.get(2).getTitle());
+            assertEquals("Existing Playlist 2", playlists.get(3).getTitle());
+            assertEquals(-1, playlists.get(4).getId());
+            assertEquals(-2, playlists.get(5).getId());
         }
 
         @Test
@@ -2437,38 +2729,13 @@ class LibraryTest {
             Resources.JAR = originalJarPath;
         }
 
-
-        @Test
-        void testSavePlayingListWithSongs() throws Exception {
-            try (MockedStatic<MusicPlayer> musicPlayerMock = Mockito.mockStatic(MusicPlayer.class)) {
-                ArrayList<Song> songsList = new ArrayList<>();
-                Song song1 = new Song(1, "Test Song 1", "Test Artist", "Test Album",
-                        Duration.ofSeconds(180), 1, 1, 0,
-                        LocalDateTime.now(), "/path/to/song1");
-                Song song2 = new Song(2, "Test Song 2", "Test Artist", "Test Album",
-                        Duration.ofSeconds(180), 2, 1, 0,
-                        LocalDateTime.now(), "/path/to/song2");
-                songsList.add(song1);
-                songsList.add(song2);
-
-                // Mock MusicPlayer.getNowPlayingList()
-                musicPlayerMock.when(MusicPlayer::getNowPlayingList).thenReturn(songsList);
-
-                Library.savePlayingList();
-
-                // No assertions - we're just verifying that the method doesn't throw any exceptions
-            }
-        }
-
         @Test
         void testSavePlayingListWithEmptyList() throws Exception {
             try (MockedStatic<MusicPlayer> musicPlayerMock = Mockito.mockStatic(MusicPlayer.class)) {
                 // Mock MusicPlayer.getNowPlayingList()
                 ArrayList<Song> emptyList = new ArrayList<>();
                 musicPlayerMock.when(MusicPlayer::getNowPlayingList).thenReturn(emptyList);
-
                 Library.savePlayingList();
-
                 // No assertions - we're just verifying that the method doesn't throw any exceptions
             }
         }
@@ -2476,7 +2743,6 @@ class LibraryTest {
         @Test
         void testSavePlayingListWithException() throws Exception {
             try (MockedStatic<MusicPlayer> musicPlayerMock = Mockito.mockStatic(MusicPlayer.class)) {
-                // Create an invalid XML file that will cause an exception
                 try (FileWriter writer = new FileWriter(xmlFile)) {
                     writer.write("This is not valid XML");
                 }
@@ -2493,6 +2759,98 @@ class LibraryTest {
                 Library.savePlayingList();
 
                 // No assertions - we're just verifying that exceptions are properly handled
+            }
+        }
+
+//        @Test
+//        void testSavePlayingListWithSongs() throws Exception {
+//            try (MockedStatic<MusicPlayer> musicPlayerMock = Mockito.mockStatic(MusicPlayer.class)) {
+//                try (FileWriter writer = new FileWriter(xmlFile)) {
+//                    writer.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+//                            "<library>\n" +
+//                            "    <nowPlayingList>\n" +
+//                            "        <id>99</id>\n" +
+//                            "    </nowPlayingList>\n" +
+//                            "</library>");
+//                }
+//
+//                // Create a non-empty list of songs
+//                ArrayList<Song> songsList = new ArrayList<>();
+//                Song song1 = new Song(1, "Test Song", "Test Artist", "Test Album",
+//                        Duration.ofSeconds(180), 1, 1, 0,
+//                        LocalDateTime.now(), "/path/to/song");
+//                songsList.add(song1);
+//                Song song2 = new Song(2, "Test Song", "Test Artist", "Test Album",
+//                        Duration.ofSeconds(180), 1, 1, 0,
+//                        LocalDateTime.now(), "/path/to/song");
+//                songsList.add(song1);
+//                songsList.add(song2);
+//
+//                // Mock MusicPlayer.getNowPlayingList()
+//                musicPlayerMock.when(MusicPlayer::getNowPlayingList).thenReturn(songsList);
+//                Library.savePlayingList();
+//                // Sleep to allow the thread to complete
+//                Thread.sleep(500);
+//                // Verify the file was updated correctly
+//                Document doc = DocumentBuilderFactory.newInstance()
+//                        .newDocumentBuilder().parse(xmlFile);
+//                NodeList nodes = doc.getElementsByTagName("nowPlayingList").item(0).getChildNodes();
+//                boolean foundSongId = false;
+//                for (int i = 0; i < nodes.getLength(); i++) {
+//                    Node node = nodes.item(i);
+//                    if (node.getNodeType() == Node.ELEMENT_NODE && node.getTextContent().equals("1")) {
+//                        foundSongId = true;
+//                        break;
+//                    }
+//                }
+//                assertTrue(foundSongId, "Song ID should be found in the XML");
+//            }
+//        }
+
+        @Test
+        void testSavePlayingListMockThreadRun() throws Exception {
+            // Create a mock implementation of Runnable to capture what runs in the thread
+            Runnable mockRunnable = mock(Runnable.class);
+
+            // Mock the Thread constructor to use our mock Runnable
+            try (MockedConstruction<Thread> mockedThread = Mockito.mockConstruction(Thread.class,
+                    (mock, context) -> {
+                        Runnable originalRunnable = (Runnable) context.arguments().get(0);
+                        doAnswer(invocation -> {
+                            originalRunnable.run();
+                            mockRunnable.run();
+                            return null;
+                        }).when(mock).start();
+                    })) {
+
+                // create songs
+                try (MockedStatic<MusicPlayer> musicPlayerMock = Mockito.mockStatic(MusicPlayer.class)) {
+                    ArrayList<Song> songsList = new ArrayList<>();
+                    Song song = new Song(1, "Test Song", "Test Artist", "Test Album",
+                            Duration.ofSeconds(180), 1, 1, 0,
+                            LocalDateTime.now(), "/path/to/song");
+                    songsList.add(song);
+
+                    // Mock MusicPlayer.getNowPlayingList()
+                    musicPlayerMock.when(MusicPlayer::getNowPlayingList).thenReturn(songsList);
+
+                    Library.savePlayingList();
+                    verify(mockRunnable).run();
+
+                    // Verify the song was written to the XML file
+                    Document doc = DocumentBuilderFactory.newInstance()
+                            .newDocumentBuilder().parse(xmlFile);
+                    NodeList nodes = doc.getElementsByTagName("nowPlayingList").item(0).getChildNodes();
+                    boolean foundSongId = false;
+                    for (int i = 0; i < nodes.getLength(); i++) {
+                        Node node = nodes.item(i);
+                        if (node.getNodeType() == Node.ELEMENT_NODE && node.getTextContent().equals("1")) {
+                            foundSongId = true;
+                            break;
+                        }
+                    }
+                    assertTrue(foundSongId, "Song ID should be found in the XML");
+                }
             }
         }
     }
