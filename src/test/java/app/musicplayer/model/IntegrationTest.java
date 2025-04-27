@@ -1,5 +1,7 @@
 package app.musicplayer.model;
 
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,13 +10,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import app.musicplayer.MusicPlayer;
 import app.musicplayer.util.ImportMusicTask;
@@ -531,5 +534,36 @@ class IntegrationTest {
         RecentlyPlayedPlaylist playlist = new RecentlyPlayedPlaylist(-1);
         String placeholder = playlist.getPlaceholder();
         assertEquals("You have not played any songs yet", placeholder);
+    }
+
+    /**
+     * Tests the application's handling of missing music files during playback initialization.
+     * Verifies the interaction among XML importing, getsongs() and instantiation of mediaplayer.
+     * Library.getsongs() should ensure all songs' locations are still valid.
+     */
+    @Test
+    void testHandlingOfMissingMusicFiles() {
+        ObservableList<Song> songs = Library.getSongs();
+        assertNotNull(songs);
+        assertFalse(songs.isEmpty());
+
+        // Get the first song for testing
+        Song song = songs.get(0);
+        String path = song.getLocation();
+
+        // Verify the file doesn't exist
+        File songFile = new File(path);
+        assertFalse(songFile.exists(), "Test requires song file to not exist");
+
+        try {
+            Media media = new Media(Paths.get(path).toUri().toString());
+            MediaPlayer mediaPlayer = new MediaPlayer(media);
+            mediaPlayer.setVolume(0.5);
+        } catch (Exception ex) {
+            // Make the test fail once we catch an exception
+            // getsongs() should validate the songs path before returning them
+            // In the actual application, this exception causes the start thread to crush because it is unhandled.
+            assertFalse(true, "MusicPlayer should handle exceptions when creating Media objects for non-existent files");
+        }
     }
 }
