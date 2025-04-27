@@ -18,11 +18,8 @@ import app.musicplayer.util.Resources;
 import javafx.collections.ObservableList;
 import static org.junit.jupiter.api.Assertions.*;
 
-// Note: This test class requires PowerMock for proper static mocking
-// or a custom test runner that can handle static method mocking
-
 @ExtendWith(MockitoExtension.class)
-class MusicPlayerIntegrationTest {
+class IntegrationTest {
 
     @TempDir
     Path tempDir;
