@@ -48,7 +48,7 @@ public class MostPlayedPlaylistTest {
         try (MockedStatic<Library> mockedLibrary = mockStatic(Library.class)) {
             mockedLibrary.when(Library::getSongs).thenReturn(FXCollections.observableArrayList(zeroPlayCountSongs));
 
-            // getSongs() method should return an empty list since no songs have been played
+            // getSongs() method should return an empty list
             ObservableList<Song> result = playlist.getSongs();
 
             assertTrue(result.isEmpty());

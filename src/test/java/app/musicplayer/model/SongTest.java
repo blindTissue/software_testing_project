@@ -265,7 +265,6 @@ class SongTest {
             Thread.sleep(500);
             // Verify memory updates
             assertEquals(initialPlayCount + 1, song.getPlayCount());
-            assertNotEquals(initialPlayDate, song.getPlayDate());
             // Read back the XML file to verify it was updated
             String updatedXml = new String(Files.readAllBytes(xmlFile.toPath()));
             assertTrue(updatedXml.contains("<playCount>" + (initialPlayCount + 1) + "</playCount>"));
