@@ -1,29 +1,15 @@
 # software_testing_project
 Software Testing Final Project
 
-### Current Ideas
+### The SUT
 
-- https://github.com/logisim-evolution/logisim-evolution
+Music Player: https://github.com/Mpmart08/MusicPlayer
 
-- https://github.com/traccar/traccar
+### Instruction on Running the Project
 
-- https://github.com/JodaOrg/joda-time
-  - There is already a test suite in this repo :(
+This repository contains the tests for whitebox testing of models and blackbox testing. The whitebox testing for utils should be found at another repository at https://github.com/blindTissue/MusicPlayerTest_UtilsTest.
 
-- https://github.com/FreeCol/freecol/tree/9b0f4dad3513ab2dc103b89c2843e8dbb46b826b
-  - Seems really ambitious
-- https://github.com/magarena/magarena
-  - A single-player fantasy card game
-- https://github.com/miner-Wh/animal_janggi/tree/master?tab=readme-ov-file
-  - Simple version of Xiangyi
-- https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py
-  - If we don't have a clear goal, we can test huggingface library on some LLM models
-- https://github.com/xingniu/nlp-util?utm_
-  - another utils class that we can check.
+### Presentation
 
-
-### Project Proposal
-
-current Proposal can be found 
-
-https://docs.google.com/document/d/1WOVPPopJICJsQNrfoMGSU0zf6E2tf5Wzn5GQ22Lsz2A/edit?usp=sharing 
+Our presentation slides can be found at https://docs.google.com/presentation/d/11TjDdmx9cEM8T3HevaNWFThfShF1TeZGktwU0GiQZiY/edit?slide=id.g350921bf746_2_0#slide=id.g350921bf746_2_0
+The jacoco report is automatically generated every time the tests are run. They can be found at build/reports/jacoco in the project.
