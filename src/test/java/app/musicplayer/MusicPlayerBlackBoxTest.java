@@ -525,6 +525,17 @@ public class MusicPlayerBlackBoxTest {
         return new TestSearchResult(songResults, albumResults, artistResults);
     }
 
+
+    // =================== End of Created Alternative Classes and Test Data setup ====================
+
+    // =================== Beginning of Test Cases ====================
+    // Five Main Testing Areas:
+    //  Audio file handling
+    //  Song metadata management
+    //  Playlist functionality
+    //  Search capabilities
+    //  Music library import
+
     //  ============ Tests for Audio File Handling =================
 
     @Nested
